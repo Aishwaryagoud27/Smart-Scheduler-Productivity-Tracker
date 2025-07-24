@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Smart Scheduler</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      margin: 0;
+      padding: 0;
+      background: #f2f2f2;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    h1 {
+      background: #333;
+      color: #fff;
+      width: 100%;
+      padding: 10px 0;
+      text-align: center;
+      margin: 0;
+    }
+    #taskForm, #tasks, #stats {
+      max-width: 600px;
+      width: 90%;
+      margin: 20px 0;
+      background: #fff;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    input, select, button {
+      padding: 10px;
+      margin: 5px;
+      width: calc(100% - 30px);
+    }
+    .task {
+      border-left: 5px solid #3498db;
+      padding: 10px;
+      margin: 10px 0;
+      background: #f9f9f9;
+    }
+    .done {
+      text-decoration: line-through;
+      opacity: 0.6;
+    }
+    .flex {
+      display: flex;
+      justify-content: space-between;
+    }
+    .tag {
+      font-size: 12px;
+      padding: 2px 6px;
+      background: #ddd;
+      border-radius: 4px;
+    }
+  </style>
+</head>
+<body>
+  <h1>🧠 Smart Scheduler</h1>
+
+  <div id="taskForm">
+    <h3>Add Task</h3>
+    <input type="text" id="taskTitle" placeholder="Task Title" required />
+    <input type="time" id="taskTime" required />
+    <select id="taskTag">
+      <option value="Work">Work</option>
+      <option value="Study">Study</option>
+      <option value="Break">Break</option>
+      <option value="Personal">Personal</option>
+    </select>
+    <button onclick="addTask()">➕ Add Task</button>
+  </div>
+
+  <div id="tasks">
+    <h3>Today's Tasks</h3>
+    <div id="taskList"></div>
+  </div>
+
+  <div id="stats">
+    <h3>📊 Productivity Stats</h3>
+    <p id="summary">No tasks yet.</p>
+  </div>
+
+  <script>
+    let tasks = JSON.parse(localStorage.getItem("tasks")) || [];
+
+    function addTask() {
+      const title = document.getElementById("taskTitle").value;
+      const time = document.getElementById("taskTime").value;
+      const tag = document.getElementById("taskTag").value;
+
+      if (!title || !time) return alert("Please fill out all fields.");
+
+      const task = {
+        id: Date.now(),
+        title,
+        time,
+        tag,
+        done: false
+      };
+      tasks.push(task);
+      localStorage.setItem("tasks", JSON.stringify(tasks));
+      renderTasks();
+    }
+
+    function toggleDone(id) {
+      tasks = tasks.map(t => t.id === id ? { ...t, done: !t.done } : t);
+      localStorage.setItem("tasks", JSON.stringify(tasks));
+      renderTasks();
+    }
+
+    function renderTasks() {
+      const taskList = document.getElementById("taskList");
+      taskList.innerHTML = "";
+
+      if (tasks.length === 0) {
+        taskList.innerHTML = "<p>No tasks yet. Add one above!</p>";
+        document.getElementById("summary").innerText = "No tasks yet.";
+        return;
+      }
+
+      tasks.sort((a,b) => a.time.localeCompare(b.time));
+
+      let doneCount = 0;
+      let tagCount = {};
+
+      tasks.forEach(task => {
+        const div = document.createElement("div");
+        div.className = `task ${task.done ? 'done' : ''}`;
+        div.innerHTML = `
+          <div class="flex">
+            <strong>${task.title}</strong>
+            <span class="tag">${task.tag}</span>
+          </div>
+          <div class="flex">
+            <span>🕒 ${task.time}</span>
+            <button onclick="toggleDone(${task.id})">${task.done ? 'Undo' : 'Mark Done'}</button>
+          </div>
+        `;
+        taskList.appendChild(div);
+
+        if (task.done) doneCount++;
+        tagCount[task.tag] = (tagCount[task.tag] || 0) + 1;
+      });
+
+      const total = tasks.length;
+      const percent = Math.round((doneCount / total) * 100);
+      const tagStats = Object.entries(tagCount).map(([t, c]) => `${t}: ${c}`).join(', ');
+      document.getElementById("summary").innerText = `Total: ${total}, Completed: ${doneCount}, ${percent}% Done\nTags → ${tagStats}`;
+    }
+
+    renderTasks();
+  </script>
+</body>
+</html>
